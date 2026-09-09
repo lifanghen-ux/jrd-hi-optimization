@@ -1,0 +1,23 @@
+function report=Test_N10_HitRate()
+% Algorithm acceptance on one exact instance, not a cross-instance study.
+root=fileparts(fileparts(mfilename('fullpath')));
+input=load(fullfile(root,'Data_N10.mat'),'data'); data=input.data;
+reference=ExactDP_Direct(data);
+seeds=20261001:20261020; costs=zeros(size(seeds)); elapsed=costs;
+for r=1:numel(seeds)
+    result=MS_VND_Direct(data,'Seed',seeds(r),'MaxSeconds',Inf, ...
+        'Starts',8,'ILSIterations',5,'SplitTrials',3,'MaxEvaluations',1023);
+    costs(r)=result.TotalCost; elapsed(r)=result.RuntimeSeconds;
+    if mod(r,5)==0, fprintf('N10 acceptance %d/20, best=%.10f\n',r,min(costs(1:r))); end
+end
+gaps=100*(costs-reference.TotalCost)/reference.TotalCost;
+fprintf('N10 hit=%d/20, best/median/worst gaps=%.6g / %.6g / %.6g percent\n', ...
+    sum(abs(costs-reference.TotalCost)<=1e-8),min(gaps),median(gaps),max(gaps));
+assert(abs(min(gaps))<1e-9 && median(gaps)<=0.1 && max(gaps)<=1, ...
+    'JRD:N10Acceptance','N=10 acceptance targets not met.');
+report=struct('Status','PASS','Seeds',seeds,'Costs',costs,'GapPercent',gaps, ...
+    'HitCount',sum(abs(costs-reference.TotalCost)<=1e-8), ...
+    'BestGapPercent',min(gaps),'MedianGapPercent',median(gaps), ...
+    'WorstGapPercent',max(gaps),'RuntimeSeconds',elapsed, ...
+    'ReferenceTC',reference.TotalCost,'CompletedAt',datestr(now,30));
+end
