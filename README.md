@@ -4,6 +4,22 @@
 目标是在相同模型、相同实例和可追溯计算预算下比较高质量成本解。
 Direct 更优是待检验假设，不是程序中的约束。
 
+## 2026-09-10：完整搜索任务入口
+
+新研究使用 `Run_Strategy_Experiment`，不再使用下方历史等时间入口。
+统一起点、完整局部搜索、有效扰动、重启和分级验收的层级，保留两侧变量与邻域差异。
+时间只记录，不作为终止条件或优劣标准；不声称两侧求解器性能完全一致。
+
+先运行 `Setup_JRD; Test_JRD_All; Test_JRD_Completion;`。
+启动、分级配置、续跑、下界与结论口径见 [完整搜索说明](COMPLETION_SEARCH_DESIGN.md)。
+新输出目录为 `Results_Completion`。旧代码与 Results_Optimized 保留用于历史复现。
+完整搜索默认工作量很大，尚未启动正式实验，也没有可信的总耗时估计。
+
+间接侧新增可配置的块 K 搜索和独立入口 `Run_Indirect_Block_Ablation`。
+先按预注册的四级配置做多种子消融，再把选定配置用于 Direct/Indirect 最终比较；
+不改变或放大固定数据中的 Penalty。方案与判定口径见
+[间接块 K 消融说明](INDIRECT_BLOCK_K_ABLATION.md)。
+
 ## 当前状态
 
 已实现两侧新求解器、精确数学验证、旧算法存储修复和新实验入口。
@@ -11,7 +27,7 @@ MATLAB R2024a 为本机验收环境。主要计算使用基础 MATLAB；
 SHA-256 清单使用 MATLAB 自带 JVM。没有调用 Optimization Toolbox 或 Parallel Computing Toolbox。
 正式实验尚未运行，具体测试结果见 IMPLEMENTATION_REPORT.md。
 
-## 使用
+## 历史等时间方案使用（仅复现旧实验）
 
 在工程根目录执行：
 

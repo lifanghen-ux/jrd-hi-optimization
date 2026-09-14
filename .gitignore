@@ -1,6 +1,8 @@
 Backups/
 Results_Fixed/
 Results_Optimized/
+Results_Completion/
+Results_Ablation/
 Validation_V1/
 *.asv
 *.m~

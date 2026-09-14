@@ -12,6 +12,12 @@ addParameter(p,'CacheLimit',50000,@(v) integer(v)&&v>=1);
 addParameter(p,'SplitTrials',6,integer);
 addParameter(p,'Tolerance',1e-11,@(v) positive(v)&&isfinite(v));
 addParameter(p,'UseTimeBudgetFully',false,@(v) islogical(v)&&isscalar(v));
+addParameter(p,'IndirectNeighborhoodProfile','coordinate_swap',@(v) ischar(v)&& ...
+    ismember(v,{'coordinate','coordinate_swap','coordinate_swap_block', ...
+    'coordinate_swap_block_conflict'}));
+addParameter(p,'BlockValuesPerItem',3,@(v) integer(v)&&v>=1);
+addParameter(p,'BlockPartnersPerItem',2,@(v) integer(v)&&v>=1);
+addParameter(p,'BlockConflictPairLimit',200,integer);
 parse(p,varargin{:});
 options = p.Results;
 assert(~options.UseTimeBudgetFully || isfinite(options.MaxSeconds), ...
