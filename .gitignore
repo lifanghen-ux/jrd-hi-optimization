@@ -3,7 +3,9 @@ Results_Fixed/
 Results_Optimized/
 Results_Completion/
 Results_Ablation/
+Results_Paper/
 Validation_V1/
+Validation_Paper/
 *.asv
 *.m~
 *.log
