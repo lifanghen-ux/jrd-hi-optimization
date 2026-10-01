@@ -1,5 +1,7 @@
 # Experiment 2：108 次 preliminary 结果只读审计
 
+发布版导航：以下长目录是**原运行来源**，不在精简树中重建。当前直接打开[完整108次结果](../Results/Exp2_DirectPerformance/README.md)；源文件未改写，路径映射与哈希见[发布manifest](../Provenance/delivery_file_manifest.csv)。
+
 审计日期：2026-10-01。审计仅读取现有 CSV/MAT 和源码 hash；未启动 MATLAB，未修改算法、数据或本批实验配置。
 
 ## 1. 最重要结论

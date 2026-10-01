@@ -1,0 +1,22 @@
+{
+  "Status": "PASS",
+  "VerifiedAt": "2026-10-01T21:50:18+08:00",
+  "EvidenceFiles": 227,
+  "EvidenceBytes": 9512617.0,
+  "ScientificQueueCommit": "f8e9b9c302be7356da0054ca5fa29ece08e64928",
+  "Exp2Tasks": 108,
+  "Exp3Tasks": 40,
+  "Exp4Tasks": 16,
+  "FixedFrequencyItemRecords": 380,
+  "CoordinationAnomalies": 0,
+  "MaxFivePartCostSumError": 8.440110832452774E-10,
+  "CommonConvergenceCheckpoints": 13501,
+  "MaxCommonConvergenceEndpointError": 1.0186340659856796E-10,
+  "VerifiedLocalDocumentLinks": 142,
+  "ProtectedHashesUnchanged": true,
+  "ScientificMATLABSourcesUnchanged": true,
+  "PackagingOnlyMATLABChanges": [
+    "Setup_JRD.m",
+    "Shared/JRDProjectManifest.m"
+  ]
+}

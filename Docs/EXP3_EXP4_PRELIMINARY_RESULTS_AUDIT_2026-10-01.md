@@ -1,5 +1,7 @@
 # Exp3 / Exp4 preliminary 完整结果审计
 
+发布版导航：以下长目录是原运行来源；当前直接打开[实验3完整结果](../Results/Exp3_StrategyComparison/README.md)与[实验4完整结果](../Results/Exp4_Coordination/README.md)。旧路径不在精简树中重建，原MAT/CSV未改写。
+
 审计日期：2026-10-01。后台两实验均完整结束；本文件根据实际 CSV/MAT、独立原输入成本重算和源码哈希核验记录整理，不包含未启动的补充实验。
 
 ## 1. 范围与预算

@@ -1,7 +1,7 @@
 function manifest=JRDProjectManifest(root)
 % Active MATLAB source + fixed data; exclude backups and generated results.
-folders={'','Shared','Direct_V1','Indirect_V1','Evolutionary_Direct', ...
-    'Paper_Experiments','Tests','Tests/Oracles','Tests_Paper'};
+folders={'','Shared','Direct_V1','Evolutionary_Direct', ...
+    'Paper_Experiments','Tests_Paper'};
 relative={};
 for f=1:numel(folders)
     files=dir(fullfile(root,folders{f},'*.m'));

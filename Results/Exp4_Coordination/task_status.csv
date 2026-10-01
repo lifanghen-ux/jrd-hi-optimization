@@ -1,0 +1,17 @@
+N,InstanceId,Strategy,Run,Seed,Status,Attempts,TotalCost,ErrorIdentifier,ErrorMessage,StudyStatus
+10,FixedData_N10,Direct_Coordinated,1,30261033,complete,1,12059.2627236542,,,complete
+10,FixedData_N10,Direct_F1,1,30261033,complete,1,12432.9231490549,,,complete
+10,FixedData_N10,Indirect_Coordinated,1,30261033,complete,1,12578.2060030283,,,complete
+10,FixedData_N10,Indirect_F1,1,30261033,complete,1,13151.8944498709,,,complete
+30,FixedData_N30,Direct_Coordinated,1,50261093,complete,1,46819.9819083491,,,complete
+30,FixedData_N30,Direct_F1,1,50261093,complete,1,49098.6151981449,,,complete
+30,FixedData_N30,Indirect_Coordinated,1,50261093,complete,1,58635.535518854,,,complete
+30,FixedData_N30,Indirect_F1,1,50261093,complete,1,62669.7732325446,,,complete
+50,FixedData_N50,Direct_Coordinated,1,70261153,complete,1,78494.1469467781,,,complete
+50,FixedData_N50,Direct_F1,1,70261153,complete,1,83112.3655496709,,,complete
+50,FixedData_N50,Indirect_Coordinated,1,70261153,complete,1,106076.704167156,,,complete
+50,FixedData_N50,Indirect_F1,1,70261153,complete,1,114086.858641032,,,complete
+100,FixedData_N100,Direct_Coordinated,1,120261303,complete,1,159852.046303985,,,complete
+100,FixedData_N100,Direct_F1,1,120261303,complete,1,170408.813598222,,,complete
+100,FixedData_N100,Indirect_Coordinated,1,120261303,complete,1,235386.503243246,,,complete
+100,FixedData_N100,Indirect_F1,1,120261303,complete,1,252897.98209096,,,complete

@@ -26,3 +26,11 @@ Benchmarks_Paper/
 !Data_N50.mat
 !Data_N100.mat
 !testDataN6_Paper.mat
+# Curated, completed teacher-review evidence is intentionally versioned.
+!Results/
+!Results/**
+# New runs and local validation must not overwrite curated evidence.
+Results_New/
+Validation_Delivery/
+Deliveries/
+Archives/

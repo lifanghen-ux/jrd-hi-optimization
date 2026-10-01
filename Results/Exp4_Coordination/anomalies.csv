@@ -1,0 +1,5 @@
+N,Run,Seed,DirectHeuristicAnomaly,IndirectHeuristicAnomaly,DirectSearchStatus,IndirectSearchStatus
+10,1,30261033,0,0,no_detected_nesting_violation,no_detected_nesting_violation
+30,1,50261093,0,0,no_detected_nesting_violation,no_detected_nesting_violation
+50,1,70261153,0,0,no_detected_nesting_violation,no_detected_nesting_violation
+100,1,120261303,0,0,no_detected_nesting_violation,no_detected_nesting_violation

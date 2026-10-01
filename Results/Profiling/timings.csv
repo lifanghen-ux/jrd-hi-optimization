@@ -1,0 +1,8 @@
+Algorithm,N,Population,Generations,GridStep,Seed,WallClockSeconds,SolverReportedSeconds,TC,BudgetDescription
+EvolutionaryX,30,300,500,0.001,20261001,84.8871898,83.9903705,46602.4427910928,"10N population and 500 generations are reference operators, not equal objective work across different solvers"
+EvolutionaryX,50,500,500,0.001,20261001,189.348278,189.1358906,77750.9644995106,"10N population and 500 generations are reference operators, not equal objective work across different solvers"
+EvolutionaryX,100,1000,500,0.001,20261001,690.3633673,690.1714643,160991.860651535,"10N population and 500 generations are reference operators, not equal objective work across different solvers"
+GA,100,1000,500,0.001,20261001,324.1178459,323.6111237,166766.244751933,"10N population and 500 generations are reference operators, not equal objective work across different solvers"
+JADE,100,1000,500,0.001,20261001,1214.3367814,1214.0211161,247384.772420365,"10N population and 500 generations are reference operators, not equal objective work across different solvers"
+VND,100,1000,500,0.001,20261001,112.0773501,111.2658895,153826.462765111,"4 starts, 10 ILS/start, 501000 uncached group-evaluation cap; population/generations not VND operators"
+TeacherAHDE,100,1000,500,0.001,20261001,190.218984,190.2094988,236422.082259479,"10N population and 500 generations are reference operators, not equal objective work across different solvers"
