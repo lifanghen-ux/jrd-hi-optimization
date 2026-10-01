@@ -15,7 +15,9 @@ while ($true) {
     try {
         if (-not (Test-Path -LiteralPath $statePath)) { Start-Sleep -Seconds $PollSeconds; continue }
         $state=Get-Content -LiteralPath $statePath -Raw -Encoding UTF8 | ConvertFrom-Json
-        $completeNow=0; $failedNow=0; $pendingNow=[math]::Max(0,[int]$state.CurrentExpectedTasks); $taskFile=''
+        $expectedNow=[int]$state.CurrentExpectedTasks
+        if (-not $state.CurrentStage) { $expectedNow=0 }
+        $completeNow=0; $failedNow=0; $pendingNow=[math]::Max(0,$expectedNow); $taskFile=''
         if ($state.CurrentRoot -and (Test-Path -LiteralPath $state.CurrentRoot)) {
             $statusFiles=Get-ChildItem -LiteralPath $state.CurrentRoot -Filter 'task_status.csv' -Recurse -File | Sort-Object LastWriteTime -Descending
             if ($statusFiles.Count -gt 0) {
@@ -42,14 +44,14 @@ while ($true) {
         if (-not $state.CurrentStage) { $totalComplete=[int]$state.CommittedUniqueTasks }
         $progress=[ordered]@{UpdatedAt=(Get-Date).ToString('o');QueueStatus=$state.Status;CurrentStage=$state.CurrentStage;
             CommittedUniqueCompleted=$totalComplete;CurrentStageCompleted=$completeNow;CurrentStageFailed=$failedNow;
-            CurrentStagePending=$pendingNow;CurrentStageExpected=$state.CurrentExpectedTasks;
+            CurrentStagePending=$pendingNow;CurrentStageExpected=$expectedNow;
             QueueElapsedSeconds=$elapsed;EstimatedStageRemainingSeconds=$estimatedSeconds;TaskStatusFile=$taskFile;
             GitCommit=$state.GitCommit;SoftDeadline=$state.Deadline}
         $progress | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $queueResolved 'live_progress.json') -Encoding UTF8
         # ASCII source is parseable by both Windows PowerShell 5 and pwsh.
         $lines=@('# JRD-HI live queue status','',"Updated: $($progress.UpdatedAt)","Queue status: $($state.Status)",
             "Current stage: $($state.CurrentStage)","Unique completed tasks: $totalComplete",
-            "Current stage: $completeNow / $($state.CurrentExpectedTasks) complete; $failedNow failed; $pendingNow pending",
+            "Current stage: $completeNow / $expectedNow complete; $failedNow failed; $pendingNow pending",
             "Queue elapsed: $([math]::Round($elapsed/60,1)) minutes",
             "Estimated stage remaining: $etaText (estimate, not a solver time cap)",'',
             "Task details: $taskFile",'Summary: REPORT.md. MAT/CSV are saved after every completed solver.',
