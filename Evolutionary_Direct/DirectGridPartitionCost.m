@@ -1,5 +1,8 @@
-function result = DirectGridPartitionCost(partition,cache)
+function result = DirectGridPartitionCost(partition,cache,detailLevel)
 %DIRECTGRIDPARTITIONCOST Evaluate one canonical, nonempty Direct partition.
+% 'fitness' omits solution assembly, never changes the group evaluator.
+if nargin<3, detailLevel='full'; end
+assert(ismember(detailLevel,{'full','fitness'}),'JRD:DetailLevel','Unknown detail level.');
 d=cache.Data;
 if iscell(partition)
     assert(~isempty(partition)&&all(~cellfun(@isempty,partition)),'JRD:InvalidPartition','Empty group.');
@@ -12,7 +15,14 @@ else
     assert(numel(partition)==d.N,'JRD:InvalidPartition','Wrong partition length.');
     ids=CanonicalizePartition(partition);
 end
-ids=CanonicalizePartition(ids); count=max(ids);
+count=max(ids);
+if strcmp(detailLevel,'fitness')
+    costs=zeros(1,count);
+    for g=1:count
+        value=cache.Get(find(ids==g)); costs(g)=value.Cost;
+    end
+    result=struct('TotalCost',sum(costs),'GroupId',ids,'GroupCount',count); return;
+end
 groups=arrayfun(@(g) find(ids==g),1:count,'UniformOutput',false);
 values=cell(1,count); costs=zeros(1,count); f=costs; t=costs;
 parts=zeros(count,5);

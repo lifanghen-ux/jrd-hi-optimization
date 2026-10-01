@@ -28,6 +28,7 @@ end
 [costs,answers]=evaluatePopulation(population);
 [bestCost,index]=min(costs); best=answers{index}; bestGeneration=0;
 trace=nan(options.Generations+1,7);
+checkpoints=zeros(options.Generations+1,d.N); checkpoints(1,:)=best.GroupId;
 trace(1,:)=traceRow(0,costs,population);
 stall=0; generationsCompleted=0; stopReason='configured generations completed';
 for generation=1:options.Generations
@@ -53,7 +54,7 @@ for generation=1:options.Generations
         target=eliteOrder(e);
         for trial=1:options.IntensifyTrials
             candidate=MutateDirectPartition(population(target,:));
-            answer=DirectGridPartitionCost(candidate,cache);
+            answer=DirectGridPartitionCost(candidate,cache,'fitness');
             if answer.TotalCost<costs(target)-options.Tolerance*max(1,costs(target))
                 population(target,:)=candidate; costs(target)=answer.TotalCost; answers{target}=answer;
             end
@@ -66,26 +67,31 @@ for generation=1:options.Generations
         stall=stall+1;
     end
     generationsCompleted=generation; trace(generation+1,:)=traceRow(generation,costs,population);
+    checkpoints(generation+1,:)=best.GroupId;
     if isfinite(options.StallGenerations)&&stall>=options.StallGenerations
         stopReason='configured stall generations reached'; break;
     end
 end
-trace=trace(1:generationsCompleted+1,:); elapsed=toc(timer);
+trace=trace(1:generationsCompleted+1,:);
+checkpoints=checkpoints(1:generationsCompleted+1,:);
 % Reconstruct from the winning X so every stored field is independently consistent.
 best=DirectGridPartitionCost(best.GroupId,cache);
 best.Algorithm='Evolutionary-X + grid-exact (T_k,f_k)';
 best.DecisionStructure='X/{G_k}, T_k, f_k; no K_i';
-best.Seed=options.Seed; best.Options=options; best.RuntimeSeconds=elapsed;
+best.Seed=options.Seed; best.Options=options; best.RuntimeSeconds=toc(timer);
 best.GenerationsCompleted=generationsCompleted; best.BestGeneration=bestGeneration;
 best.StopReason=stopReason; best.Counters=cache.Snapshot();
 best.Convergence=array2table(trace,'VariableNames',{'Generation','BestTC','MeanTC', ...
     'UniquePartitions','GroupEvaluations','CacheHits','ElapsedSeconds'});
+best.CheckpointPartitions=checkpoints;
+best.Convergence.CommonBestTC=best.Convergence.BestTC;
+best.ObjectiveMetric='CommonGridTC'; best.CommonGridTC=best.TotalCost;
 best.Optimality='heuristic feasible partition; inner (T_k,f_k) is exact on the configured grid';
 result=best;
     function [values,details]=evaluatePopulation(pop)
         values=zeros(size(pop,1),1); details=cell(size(pop,1),1);
         for z=1:size(pop,1)
-            details{z}=DirectGridPartitionCost(pop(z,:),cache); values(z)=details{z}.TotalCost;
+            details{z}=DirectGridPartitionCost(pop(z,:),cache,'fitness'); values(z)=details{z}.TotalCost;
         end
     end
     function index=tournament(values)
@@ -94,7 +100,7 @@ result=best;
     end
     function row=traceRow(generation,values,pop)
         counters=cache.Snapshot();
-        row=[generation,min(values),mean(values),size(unique(pop,'rows'),1), ...
+        row=[generation,bestCost,mean(values),size(unique(pop,'rows'),1), ...
             counters.GroupEvaluations,counters.CacheHits,toc(timer)];
     end
     function pop=makeDiverse(pop)

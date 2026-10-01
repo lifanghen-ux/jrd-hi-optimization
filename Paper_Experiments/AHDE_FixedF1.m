@@ -1,7 +1,9 @@
 function [bestTC,bestT,bestK,bestF,TCArray,KArray,TArray]=AHDE_FixedF1( ...
     Gm,Np,KSup,KInf,sw,di,sr,hw,hr,S,pij,n)
-%AHDE_FIXEDF1 AHDE search over K with F fixed to one (non-coordination).
-% This is a constrained companion to the unchanged teacher AHDE.m.
+%AHDE_FIXEDF1 Supplementary reduced-dimension K search with F fixed to one.
+% This implementation changes chromosome dimension and random consumption.
+% It is NOT used by the primary Experiment 4. Its two Indirect cases both
+% call the original AHDE.m; fixed-F is obtained solely by FInf=FSup=1.
 assert(Np>=4&&Gm>=1,'JRD:AHDEConfig','AHDE requires Np>=4 and Gm>=1.');
 Fmin=0.2; Fmax=1.2; CR=0.2; X=rand(n,Np);
 trialMutation=zeros(n,Np); trial=zeros(n,Np); scores=zeros(1,2*Np);

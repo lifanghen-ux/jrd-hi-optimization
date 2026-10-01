@@ -4,6 +4,16 @@
 目标是在相同模型、相同实例和可追溯计算预算下比较高质量成本解。
 Direct 更优是待检验假设，不是程序中的约束。
 
+## 当前主线：2026-10-01 开跑前修订
+
+论文主 Direct 为 Evolutionary-X；Indirect 为老师原 AHDE。最新入口见
+[PAPER_MAINLINE](PAPER_MAINLINE.md)，当前门禁、实测与风险见
+[开跑前审计](Docs/PRE_RUN_AUDIT_2026-10-01.md)。
+Experiment1 已冻结。实验2正式四算法用共同网格适应度与收敛；实验4两个
+Indirect 情形均调用同一原 AHDE，固定 F 只改频率边界。
+下面 completed-search、60s 等时间及 block-K 章节保留为历史/稳健性工作，
+不再是当前主实验入口。请先审阅本机真实预算测速，不直接启动大型默认 runner。
+
 ## 2026-09-10：完整搜索任务入口
 
 新研究使用 `Run_Strategy_Experiment`，不再使用下方历史等时间入口。

@@ -1,6 +1,7 @@
-function readiness=Test_JRD_All()
+function readiness=Test_JRD_All(outputRoot)
 root=fileparts(fileparts(mfilename('fullpath'))); addpath(root); Setup_JRD();
-out=fullfile(root,'Validation_V1'); if ~isfolder(out), mkdir(out); end
+if nargin<1, outputRoot=fullfile(root,'Validation_V1'); end
+out=outputRoot; if ~isfolder(out), mkdir(out); end
 before=JRDProjectManifest(root);
 mathematics=Test_JRD_Mathematics();
 save(fullfile(out,'mathematics.mat'),'mathematics');

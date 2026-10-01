@@ -1,5 +1,7 @@
 function result=RunLegacyDirectBaseline(name,data,varargin)
-%RUNLEGACYDIRECTBASELINE Run a preserved legacy Direct solver, then re-score X.
+%RUNLEGACYDIRECTBASELINE Historical native solver, then re-score final X.
+% Not an Experiment 2 main baseline: native search/curve uses a different
+% objective. Use RunCommonDirectBaseline for the common-objective study.
 d=NormalizeJRDData(data); p=inputParser;
 integer=@(x) isnumeric(x)&&isscalar(x)&&isfinite(x)&&x==fix(x)&&x>=1;
 addParameter(p,'Seed',20260919,@(x) integer(x)&&x<=2^32-1);
@@ -19,5 +21,7 @@ result=struct('Algorithm',name,'Seed',o.Seed,'Options',o,'NativeTotalCost',nativ
     'NativeSolution',legacy,'CommonGridSolution',common,'TotalCost',common.TotalCost, ...
     'NativeRuntimeSeconds',runtime,'CommonRescoreSeconds',rescoreRuntime, ...
     'RuntimeSeconds',runtime+rescoreRuntime,'ConvergenceTC',curve(:), ...
+    'NativeConvergenceTC',curve(:),'CommonGridTC',common.TotalCost, ...
+    'MetricRole','historical native search plus final common postprocessing; exclude native curve from common convergence', ...
     'ComparisonMeaning','legacy partition re-optimized with the common grid inner solver');
 end

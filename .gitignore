@@ -6,6 +6,10 @@ Results_Ablation/
 Results_Paper/
 Validation_V1/
 Validation_Paper/
+Validation_Preliminary/
+Results_Profiling/
+Results_Unattended/
+Benchmarks_Paper/
 *.asv
 *.m~
 *.log

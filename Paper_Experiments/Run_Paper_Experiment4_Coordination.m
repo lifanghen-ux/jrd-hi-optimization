@@ -1,73 +1,114 @@
 function [Study,out]=Run_Paper_Experiment4_Coordination(varargin)
-%RUN_PAPER_EXPERIMENT4_COORDINATION Quantify optimized f/F versus fixed one.
+%RUN_PAPER_EXPERIMENT4_COORDINATION Reoptimize each outer X/K with f/F or one.
+% Both Indirect cases call the same original AHDE, only FInf/FSup differ.
 root=Setup_JRD(); p=inputParser;
 integer=@(x) isnumeric(x)&&isscalar(x)&&isfinite(x)&&x==fix(x)&&x>=1;
-addParameter(p,'NList',[10 30 50 100],@(x) isnumeric(x)&&isvector(x)&&all(ismember(x,[10 30 50 100])));
-addParameter(p,'Runs',30,integer); addParameter(p,'BaseSeed',20260919,integer);
-addParameter(p,'Generations',500,integer); addParameter(p,'PopulationFactor',4,integer);
+addParameter(p,'NList',[10 30 50 100],@(x) isnumeric(x)&&isvector(x)&&~isempty(x)&&all(ismember(x,[10 30 50 100]))&&numel(unique(x))==numel(x));
+addParameter(p,'Runs',30,integer); addParameter(p,'BaseSeed',20260919,@(x) integer(x)&&x<=2^32-1);
+addParameter(p,'Generations',500,integer); addParameter(p,'PopulationFactor',10,integer);
 addParameter(p,'MinimumPopulation',40,@(x) integer(x)&&x>=4);
 addParameter(p,'GridStep',0.001,@(x) isnumeric(x)&&isscalar(x)&&isfinite(x)&&x>0);
 addParameter(p,'OutputRoot','',@(x) ischar(x)||isstring(x));
-addParameter(p,'ResumeDir','',@(x) ischar(x)||isstring(x)); parse(p,varargin{:}); o=p.Results;
+addParameter(p,'ResumeDir','',@(x) ischar(x)||isstring(x));
+addParameter(p,'MaxNewSolves',Inf,@(x) (isnumeric(x)&&isscalar(x)&&isinf(x)&&x>0)||integer(x));
+addParameter(p,'ContinueOnTaskError',false,@(x) islogical(x)&&isscalar(x));
+addParameter(p,'RetryFailedTasks',true,@(x) islogical(x)&&isscalar(x));
+parse(p,varargin{:}); o=p.Results;
 cases={'Direct_Coordinated','Direct_F1','Indirect_Coordinated','Indirect_F1'};
-config=rmfield(o,{'OutputRoot','ResumeDir'}); manifest=JRDProjectManifest(root);
+config=rmfield(o,{'OutputRoot','ResumeDir','MaxNewSolves','ContinueOnTaskError','RetryFailedTasks'}); manifest=JRDProjectManifest(root);
 if isempty(o.ResumeDir)
     out=CreatePaperOutput(root,'Experiment4_Coordination',char(o.OutputRoot));
-    Study=struct('SchemaVersion',1,'Experiment','coordination value: optimized f/F versus one', ...
+    Study=struct('SchemaVersion',2,'ExperimentKind','Exp4','Experiment','coordination value: optimized f/F versus one', ...
         'Status','running','Config',config,'Cases',{cases},'Manifest',manifest, ...
         'Source',PaperSourceSnapshot(root),'StartedAt',datestr(now,30), ...
-        'Design',['Each case re-optimizes its outer decision because fixing frequency changes the best X or K. ' ...
-        'Paired seeds and equal population/generation levels control randomness and outer search scale.']);
-    Study.Inputs=cell(numel(o.NList),1); Study.Records=cell(numel(o.NList),o.Runs,4); Study.RawRows={}; Study.PairedRows={};
+        'InstanceDefinition','one immutable Data_N*.mat instance per N; algorithm seeds are not additional benchmark instances', ...
+        'BudgetRole','population=10N and generations=500 are paper reference settings requiring pilot wall-clock measurement', ...
+        'Design',['Each case independently reoptimizes X or K. Within each strategy the algorithm implementation is identical; ' ...
+        'only the delivery-frequency feasible domain changes. Original AHDE remains 2N-dimensional even when FInf=FSup=1. ' ...
+        'Paired seeds support reproducibility, not identical random trajectories. Equal population/generation levels are not equal inner work'], ...
+        'SanityRule','coordinated feasible set contains fixed-frequency set; a higher found coordinated TC is flagged as heuristic_search_insufficiency', ...
+        'SupplementaryRole','AHDE_FixedF1.m is supplementary only and is never called by this primary runner', ...
+        'ResumeGranularity','one completed solver call; interruption inside unchanged AHDE restarts only that incomplete call');
+    Study.Inputs=cell(numel(o.NList),1); Study.Records=cell(numel(o.NList),o.Runs,4);
 else
     out=char(o.ResumeDir); loaded=load(fullfile(out,'study.mat'),'Study'); Study=loaded.Study;
+    assert(Study.SchemaVersion==2&&strcmp(Study.ExperimentKind,'Exp4'), ...
+        'JRD:CheckpointSchema','Historical Exp4 checkpoints must retain their original runner/source version.');
     assert(isequaln(Study.Config,config)&&isequal(Study.Manifest,manifest), ...
         'JRD:StaleCheckpoint','Resume configuration, source, or fixed data changed.');
 end
-rows=Study.RawRows; paired=Study.PairedRows; Study.Status='running';
+if ~isfield(Study,'Failures'), Study.Failures=cell(size(Study.Records)); end
+if ~isfield(Study,'ErrorRecords'), Study.ErrorRecords=struct([]); end
+if ~isfield(Study,'AttemptCounts'), Study.AttemptCounts=zeros(size(Study.Records)); end
+Study.RunControls=struct('ContinueOnTaskError',o.ContinueOnTaskError,'RetryFailedTasks',o.RetryFailedTasks,'MaxNewSolves',o.MaxNewSolves);
+Study.Status='running'; newSolves=0;
 SavePaperStudy(fullfile(out,'study.mat'),Study);
 for ni=1:numel(o.NList)
-    input=load(fullfile(root,sprintf('Data_N%d.mat',o.NList(ni))),'data'); d=input.data; Study.Inputs{ni}=d;
-    population=max(o.MinimumPopulation,o.PopulationFactor*d.N);
+    input=load(fullfile(root,sprintf('Data_N%d.mat',o.NList(ni))),'data'); d=input.data;
+    normalized=NormalizeJRDData(d);
+    assert(normalized.FInf<=1&&normalized.FSup>=1,'JRD:FrequencyBounds','The coordinated frequency domain must include one.');
+    if ~isempty(Study.Inputs{ni})
+        assert(isequaln(d,Study.Inputs{ni}),'JRD:StaleCheckpoint','The saved instance differs from the current original data.');
+    end
+    Study.Inputs{ni}=d; population=max(o.MinimumPopulation,o.PopulationFactor*d.N);
     for r=1:o.Runs
-        if all(~cellfun(@isempty,Study.Records(ni,r,:))), continue; end
-        seed=mod(o.BaseSeed+1000003*d.N+r-1,2^32); answers=cell(1,4);
-        answers{1}=EvolutionaryX_Direct(d,'Seed',seed,'PopulationSize',population,'Generations',o.Generations,'GridStep',o.GridStep);
-        answers{2}=EvolutionaryX_Direct(d,'Seed',seed,'PopulationSize',population,'Generations',o.Generations,'GridStep',o.GridStep,'FixedF',1);
-        answers{3}=RunTeacherAHDE(d,'Seed',seed,'PopulationSize',population,'Generations',o.Generations);
-        answers{4}=RunTeacherAHDE(d,'Seed',seed,'PopulationSize',population,'Generations',o.Generations,'FixedF',1);
-        for c=1:4
-            Study.Records{ni,r,c}=answers{c}; a=answers{c};
-            rows(end+1,:)={d.N,cases{c},r,seed,a.TotalCost,a.RuntimeSeconds,population,o.Generations}; %#ok<AGROW>
-            record=struct('N',d.N,'Case',cases{c},'Run',r,'Seed',seed,'Answer',a); %#ok<NASGU>
-            save(fullfile(out,'raw',sprintf('N%d_%s_run%03d.mat',d.N,cases{c},r)),'record','-v7');
+        seed=mod(o.BaseSeed+1000003*d.N+r-1,2^32);
+        order=circshift(1:4,[0,-mod(r-1,4)]);
+        for c=order
+            path=fullfile(out,'raw',sprintf('N%d_%s_run%03d.mat',d.N,cases{c},r));
+            if isempty(Study.Records{ni,r,c})&&isfile(path)
+                Study.Records{ni,r,c}=RecoverPaperStrategyRecord(path,d,cases{c},r,seed,population,o.Generations,o.GridStep);
+                Study=ResolvePaperStrategyTaskError(Study,ni,r,c,cases{c});
+                Study=PaperStrategyOutputs(Study,out);
+                SavePaperStudy(fullfile(out,'study.mat'),Study);
+            end
+            if isempty(Study.Records{ni,r,c})
+                if ~o.RetryFailedTasks&&~isempty(Study.Failures{ni,r,c}), continue; end
+                Study.AttemptCounts(ni,r,c)=Study.AttemptCounts(ni,r,c)+1;
+                taskTimer=tic;
+                try
+                    [answer,failure]=RunPaperTaskGuard(@() RunPaperStrategyCase(d,cases{c},seed,population,o.Generations,o.GridStep),o.ContinueOnTaskError);
+                catch problem
+                    failure=struct('Identifier',problem.identifier,'Message',problem.message, ...
+                        'Report',getReport(problem,'extended','hyperlinks','off'),'At',datestr(now,30), ...
+                        'ElapsedSeconds',toc(taskTimer),'IsGlobalBlocker',PaperTaskFailureIsFatal(problem));
+                    Study=RecordPaperStrategyTaskError(Study,ni,r,c,cases{c},seed,failure);
+                    Study.Status='stopped_task_error';
+                    if failure.IsGlobalBlocker, Study.Status='blocked_global_error'; end
+                    Study=PaperStrategyOutputs(Study,out); SavePaperStudy(fullfile(out,'study.mat'),Study);
+                    rethrow(problem);
+                end
+                if isempty(failure)
+                    kind='Indirect'; if c<=2, kind='Direct'; end
+                    Study.Records{ni,r,c}=answer;
+                    Study=ResolvePaperStrategyTaskError(Study,ni,r,c,cases{c});
+                    record=struct('N',d.N,'InstanceId',sprintf('FixedData_N%d',d.N),'Case',cases{c}, ...
+                        'Run',r,'Seed',seed,'Answer',answer,'Diagnostics',JRDAnalyzeSolution(d,answer,kind));
+                    SavePaperStrategyRecord(path,record);
+                    fprintf('Experiment4 N=%d run=%d %s TC=%.10f runtime=%.3fs\n', ...
+                        d.N,r,cases{c},answer.TotalCost,answer.RuntimeSeconds);
+                else
+                    Study=RecordPaperStrategyTaskError(Study,ni,r,c,cases{c},seed,failure);
+                    fprintf('Experiment4 TASK_FAILED N=%d run=%d %s %s: %s\n',d.N,r,cases{c},failure.Identifier,failure.Message);
+                end
+                Study=PaperStrategyOutputs(Study,out);
+                SavePaperStudy(fullfile(out,'study.mat'),Study);
+                newSolves=newSolves+1;
+                if newSolves>=o.MaxNewSolves&&any(cellfun(@isempty,Study.Records(:)))
+                    Study.Status='paused_solver_boundary'; Study=PaperStrategyOutputs(Study,out);
+                    SavePaperStudy(fullfile(out,'study.mat'),Study); return;
+                end
+            elseif ~isfile(path)
+                answer=Study.Records{ni,r,c}; kind='Indirect'; if c<=2, kind='Direct'; end
+                record=struct('N',d.N,'InstanceId',sprintf('FixedData_N%d',d.N),'Case',cases{c}, ...
+                    'Run',r,'Seed',seed,'Answer',answer,'Diagnostics',JRDAnalyzeSolution(d,answer,kind));
+                SavePaperStrategyRecord(path,record);
+            end
         end
-        paired(end+1,:)={d.N,r,seed,answers{1}.TotalCost,answers{2}.TotalCost, ...
-            100*(answers{2}.TotalCost-answers{1}.TotalCost)/answers{2}.TotalCost, ...
-            answers{3}.TotalCost,answers{4}.TotalCost, ...
-            100*(answers{4}.TotalCost-answers{3}.TotalCost)/answers{4}.TotalCost}; %#ok<AGROW>
-        Study.RawRows=rows; Study.PairedRows=paired;
-        SavePaperStudy(fullfile(out,'study.mat'),Study);
-        fprintf('Experiment4 N=%d run=%d Direct-saving=%.4f%% Indirect-saving=%.4f%%\n',d.N,r, ...
-            100*(answers{2}.TotalCost-answers{1}.TotalCost)/answers{2}.TotalCost, ...
-            100*(answers{4}.TotalCost-answers{3}.TotalCost)/answers{4}.TotalCost);
     end
 end
-Study.RawTable=cell2table(rows,'VariableNames',{'N','Case','Run','Seed','TotalCost','RuntimeSeconds','PopulationSize','Generations'});
-Study.PairedSavings=cell2table(paired,'VariableNames',{'N','Run','Seed','DirectCoordinatedTC', ...
-    'DirectF1TC','DirectCoordinationSavingPercent','IndirectCoordinatedTC','IndirectF1TC', ...
-    'IndirectCoordinationSavingPercent'});
-comparison={};
-for n=unique(Study.RawTable.N)'
-    values=cell(1,4);
-    for c=1:4, values{c}=Study.RawTable.TotalCost(Study.RawTable.N==n&strcmp(Study.RawTable.Case,cases{c})); end
-    comparison(end+1,:)={n,min(values{1}),min(values{2}),100*(min(values{2})-min(values{1}))/min(values{2}), ...
-        min(values{3}),min(values{4}),100*(min(values{4})-min(values{3}))/min(values{4})}; %#ok<AGROW>
-end
-Study.Comparison=cell2table(comparison,'VariableNames',{'N','DirectCoordinatedBestTC','DirectF1BestTC', ...
-    'DirectCoordinationSavingPercent','IndirectCoordinatedBestTC','IndirectF1BestTC','IndirectCoordinationSavingPercent'});
-Study.Status='complete'; Study.CompletedAt=datestr(now,30);
-writetable(Study.RawTable,fullfile(out,'raw_results.csv')); writetable(Study.PairedSavings,fullfile(out,'paired_savings.csv'));
-writetable(Study.Comparison,fullfile(out,'comparison.csv'));
-SavePaperStudy(fullfile(out,'study.mat'),Study);
+Study.Status='complete';
+if any(cellfun(@isempty,Study.Records(:))), Study.Status='completed_with_failures'; end
+Study.CompletedAt=datestr(now,30);
+Study=PaperStrategyOutputs(Study,out); SavePaperStudy(fullfile(out,'study.mat'),Study);
 end

@@ -23,7 +23,7 @@ classdef DirectGridCostCache < handle
             if isKey(obj.Entries,key)
                 obj.Hits=obj.Hits+1; value=obj.Entries(key); return;
             end
-            value=DirectGridGroupCost(items,obj.Data,obj.Options);
+            value=DirectGridGroupKernel(items,obj.Data,obj.Options);
             obj.Misses=obj.Misses+1;
             obj.GridCandidatesChecked=obj.GridCandidatesChecked+value.GridCandidatesChecked;
             if obj.Entries.Count>=obj.Options.CacheLimit

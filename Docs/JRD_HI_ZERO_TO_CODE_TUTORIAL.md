@@ -1,5 +1,7 @@
 # JRD-HI 零基础完整教程：从现实问题到 MATLAB 结果
 
+2026-10-01 工程修订已同步：实验2正式算法的整个搜索/收敛使用同一网格目标；实验4固定 F 调用同一原 AHDE。实验1冻结，不应重复开长实验。最新测试、实际时间及模型边界请同时看 `PRE_RUN_AUDIT_2026-10-01.md`。
+
 这份教程不要求读者学过运筹优化、进化算法或 MATLAB。阅读目标是能够把下面这条链从头到尾讲清楚：
 
 \[
@@ -324,7 +326,7 @@ answer = EvolutionaryX_Direct(data, ...
 
 ### 步骤 9：迭代和输出
 
-重复选择—交叉—变异—评价，直到代数完成或达到用户明确设置的停滞代数。输出 `Convergence` 表，每代保存最好成本、平均成本、不同 partition 数、组评价数、缓存命中和耗时。
+重复选择—交叉—变异—评价，直到代数完成或达到用户明确设置的停滞代数。输出 `Convergence` 表，每代保存最好成本、平均成本、不同 partition 数、组评价数、缓存命中和耗时。`CheckpointPartitions` 保存各代最好分组，`CommonBestTC` 是同一网格目标，可用该分组重新核算。
 
 ### 网格投影为什么仍是精确网格搜索
 
@@ -372,7 +374,14 @@ AHDE 把 Np 个父代和 Np 个试验个体放在一起，按成本排序，保�
 
 ### 6. (F=1) 版本
 
-`AHDE_FixedF1.m` 只保留 N 个 K 坐标，所有 F 固定为 1。它仍使用相同的自适应差分变异、交叉和联合选择。
+主实验仍调用原 `AHDE.m`，只传 `FInf=FSup=1`，即：
+
+```matlab
+answer = RunTeacherAHDE(data,'Seed',42, ...
+    'PopulationSize',80,'Generations',250,'FixedF',1);
+```
+
+染色体仍为 2N 维，搜索实现不换，所有频率只能解码为 1；wrapper 会检查最终及逐代 F。`AHDE_FixedF1.m` 是另一个 N 维 K 搜索实现，改变了随机消费/边界处理，只留作 supplementary，不参与主协同结论。
 
 ## 九、MATLAB 代码从哪里开始
 
@@ -404,11 +413,13 @@ EvolutionaryX_Direct
   → 初始化 X
   → DirectGridPartitionCost
       → DirectGridCostCache.Get
-          → DirectGridGroupCost
+          → DirectGridGroupKernel（规范化快照，同一网格成本核）
   → 选择 / CrossoverDirectPartition / MutateDirectPartition
   → DirectGridPartitionCost 重复评价
   → answer
 ```
+
+公共 `DirectGridGroupCost` 负责验证并调用该 kernel；缓存已经验证过数据，不再每个组重建全数据。外层 fitness 模式只省略完整解装配，未改变成本。最后仍输出完整 groups、T、f 与五项成本。
 
 ### Indirect 单次调用链
 
@@ -430,7 +441,8 @@ RunTeacherAHDE
 ### 实验 1：N=10 正确性和复现
 
 ```matlab
-[Study,out] = Run_Paper_Experiment1_N10;
+% 已完成且冻结，不重跑。查看已保存的 runs.csv / study.mat。
+% Run_Paper_Experiment1_N10 是原验证入口，不是本轮开跑步骤。
 ```
 
 它回答：公式是否一致、网格计算是否正确、新进化搜索能否找到已知精确答案、同 seed 是否复现。
@@ -441,17 +453,20 @@ RunTeacherAHDE
 
 ```matlab
 [Study,out] = Run_Paper_Experiment2_DirectPerformance( ...
-    'NList',[30 50 100],'Runs',5,'Generations',250);
+    'NList',[30 50 100],'Instances',3,'Runs',3, ...
+    'Generations',100,'PopulationFactor',4);
 ```
 
 比较：
 
 - 新 `EvolutionaryX_Direct`；
-- 旧基本 `GA_Direct`；
-- 旧自适应 `JADE_Direct`；
-- 结构化非进化 `MS_VND_Direct`。
+- 基本 GA 的 partition adapter；
+- 自适应 JADE 的 partition adapter；
+- 结构化 grid-VND。
 
-旧算法最终 partition 会用新网格内层重新计分，减少不同 T/f 内层公式对 partition 比较的干扰。原生成本和原生解仍保存在 raw MAT 中。
+这些 adapter 通过 `RunCommonDirectBaseline` 调用，搜索每个候选及最终评分都用同一个 `DirectGridPartitionCost`，并非只做终点后处理。GA/JADE 保留原算子，只有 N 个有效分组标签坐标；T/f 交由公共内层。旧 2N 文件仍完整保留用于历史复现，不能把历史原生收敛混入正式曲线。
+
+`Instances` 是独立随机问题数，`Runs` 是同一问题的算法 seed 重复数。InstanceSeed 与 AlgorithmSeed 分开保存。ReferenceBestTC 是该实例所有四算法和全部 seed 找到的最低 CommonGridTC，不是已证明全局最优。
 
 ### 实验 3：两种策略成本
 
@@ -483,6 +498,8 @@ RunTeacherAHDE
 
 短跑中此值可能为负，因为启发式搜索没有充分收敛；正式多 seed 和充足代数后才解释模型含义。
 
+程序自动标记 `heuristic_search_insufficiency`，但不会删除负值或用固定解替换协同解。相同 seed 支持复现，并不代表不同算法/频率可行域具有相同随机轨迹；相同种群/代数也不代表同工作量。
+
 ## 十一、seed、稳定性和“全局最优”
 
 随机种子 seed 是随机数发生器的起点。相同数据、代码、参数和 seed 应产生相同初始种群及搜索轨迹。不同 seed 相当于从不同随机起点搜索。
@@ -506,6 +523,11 @@ RunTeacherAHDE
 | `comparison.csv` | Direct/Indirect 或协同/不协同的最终比较 |
 | `diagnostics.csv` | 五项成本、组数、边隔离率、LCM penalty 衰减等 |
 | `paired_savings.csv` | 实验 4 同 seed 的协同节约率 |
+| `instance_summary.csv` | 实验 2 每个独立实例的 seed 稳定性与 BKS gap |
+| `convergence.csv` | 公共网格收敛（实验2），或各策略自身模型收敛（实验3/4） |
+| `solution_items.csv` | 实验3/4逐商品完整周期、频率及适用的组/K/T |
+| `anomalies.csv` | 实验4可行域嵌套的启发式搜索异常 |
+| `performance_panels.png/.fig`、`common_convergence.png/.fig` | 实验2平均时间、命中实例数、gap以及公共成本收敛图 |
 
 ### 实验 1 `runs.csv`
 
@@ -522,8 +544,8 @@ RunTeacherAHDE
 
 - `N`：商品规模；
 - `Algorithm` 或 `Strategy`：求解器；
-- `Run`、`Seed`：重复编号与种子；
-- `TotalCost`：最终成本；
+- `Run` 与 `AlgorithmSeed`（实验2）或 `Seed`（实验3）：算法重复；`InstanceID/InstanceSeed` 区分独立问题；
+- `CommonGridTC`（实验2）或 `TotalCost`（实验3）：正式最终成本；
 - `RuntimeSeconds`：诊断耗时；
 - `PopulationSize`、`Generations`：外层搜索级别。
 
@@ -534,7 +556,9 @@ RunTeacherAHDE
 - `StdTC`：标准差；
 - `WorstTC`：最高成本；
 - `CVPercent=100×Std/Mean`：相对波动；
-- `MeanRuntimeSeconds`：平均耗时，只报告，不用于策略判优。
+- `AverageRuntimeSeconds`：平均耗时，只报告，不用于策略判优；
+- 实验2 `BestCount` 为命中实例 BKS 的实例数，`RunBestCount` 为命中的求解次数；`AverageGapPercent` 先平均实例内各 seed，再跨实例平均；
+- 实验2 Std/CV 先在同实例内计算；N级 `AverageWithinInstanceStdTC/CVPercent` 是这些稳定性指标的平均，不能把不同实例的原始 TC 方差称为搜索不稳定。仅一个 seed 时为 NaN。
 
 ### `diagnostics.csv`
 
@@ -581,17 +605,18 @@ Direct 的 `GroupT(g)`、`GroupF(g)` 属于 `Groups{g}`；Indirect 的 `K(i)`、
 
 ```matlab
 Setup_JRD;
-Test_Paper_Revision;                       % 先过数学和复现门禁
-[E1,out1] = Run_Paper_Experiment1_N10;    % 小规模证书
+[audit,auditDir] = Run_Preliminary_Audit_Tests; % 全套门禁，不重跑冻结实验1
+% 后续实验命令需预先固定参数并按计划手动选择执行，本轮没有自动开始。
 [P2,out2] = Run_Paper_Experiment2_DirectPerformance( ...
-    'NList',[30 50 100],'Runs',5,'Generations',250); % pilot
+    'NList',[30 50 100],'Instances',3,'Runs',3, ...
+    'Generations',100,'PopulationFactor',4); % 一个preliminary候选，不是最终预算
 ```
 
-观察实验 2 收敛曲线后，在看 Direct/Indirect 输赢之前固定正式参数，再运行：
+观察实验 2 收敛和本机实测后，在看 Direct/Indirect 输赢之前固定正式参数。以下是参考预算示例，不是已锁定或自动启动的正式实验：
 
 ```matlab
 [E2,out2] = Run_Paper_Experiment2_DirectPerformance( ...
-    'NList',[30 50 100],'Runs',30,'Generations',500);
+    'Design','paper-reference','NList',[30 50 100],'Runs',3);
 [E3,out3] = Run_Paper_Experiment3_StrategyComparison( ...
     'NList',[10 30 50 100],'Runs',30,'Generations',500);
 [E4,out4] = Run_Paper_Experiment4_Coordination( ...
@@ -609,3 +634,5 @@ Test_Paper_Revision;                       % 先过数学和复现门禁
 ```
 
 程序会核对参数、源码哈希和固定数据；任何一项变化都会拒绝把新旧结果混在一起。
+
+恢复单位是一个已完成 solver call，即同 seed 只完成部分算法/策略时也会保留。raw 已原子写完但 study 未提交时可以回收 raw；如果关机发生在原 AHDE 某代内部，没有代内 checkpoint，这个未完成调用按同 seed 重算。历史 schema1 目录须用其历史代码续跑，不和新 schema2 混合。

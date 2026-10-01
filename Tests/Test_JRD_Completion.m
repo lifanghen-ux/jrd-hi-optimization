@@ -1,4 +1,4 @@
-function readiness=Test_JRD_Completion()
+function readiness=Test_JRD_Completion(outputRoot)
 root=Setup_JRD(); before=JRDProjectManifest(root);
 blockSearch=Test_Indirect_Block_Search();
 loaded=load(fullfile(root,'Data_N10.mat'),'data'); d=loaded.data;
@@ -60,7 +60,8 @@ readiness=struct('Status','PASS','Manifest',after,'CompletedAt',datestr(now,30),
 readiness.N10Diagnostic=struct('Seeds',1:5,'Starts',4,'ILSIterations',10, ...
     'ExactHits',hits,'Costs',costs,'ExactCost',exact.TotalCost);
 readiness.BlockSearch=blockSearch;
-dest=fullfile(root,'Validation_V1'); if ~isfolder(dest), mkdir(dest); end
+if nargin<1, outputRoot=fullfile(root,'Validation_V1'); end
+dest=outputRoot; if ~isfolder(dest), mkdir(dest); end
 save(fullfile(dest,'completion_readiness.mat'),'readiness');
 disp(readiness);
 end

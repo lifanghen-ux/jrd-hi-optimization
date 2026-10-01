@@ -1,4 +1,4 @@
-function report=Test_Paper_Revision()
+function report=Test_Paper_Revision(outputRoot)
 %TEST_PAPER_REVISION Mathematical and reproducibility gates for new mainline.
 root=fileparts(fileparts(mfilename('fullpath'))); addpath(root); Setup_JRD(); wall=tic;
 loaded=load(fullfile(root,'Data_N10.mat'),'data'); d=NormalizeJRDData(loaded.data);
@@ -37,7 +37,8 @@ report=struct('Status','PASS','MaxGridEnumerationError',maxGridError, ...
     'EvolutionarySmokeTC',first.TotalCost,'AHDETeacherSmokeTC',ahde.TotalCost, ...
     'AHDEFixedF1SmokeTC',fixed.TotalCost,'RuntimeSeconds',toc(wall), ...
     'MATLABVersion',version,'CompletedAt',datestr(now,30));
-out=fullfile(root,'Validation_Paper'); if ~isfolder(out), mkdir(out); end
+if nargin<1, outputRoot=fullfile(root,'Validation_Paper'); end
+out=outputRoot; if ~isfolder(out), mkdir(out); end
 save(fullfile(out,'paper_revision.mat'),'report','-v7'); disp(report);
     function ids=makePartition(group,n)
         remaining=setdiff(1:n,group); ids=zeros(1,n); ids(group)=1;
