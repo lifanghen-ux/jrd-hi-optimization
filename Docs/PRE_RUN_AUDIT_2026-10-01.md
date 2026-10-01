@@ -143,3 +143,14 @@ Results_Profiling/tp6c56a870_ff62_4eb7_81d4_6a49d9f6fc62/
 后续顺序：先以预先固定的短预算做多实例、多seed preliminary，检查收敛/稳定性/异常；再锁定正式预算；再运行大规模性能、策略/协同及 stronger Indirect 稳健性。时间仅用于性能/排程，不用于策略成本优劣判断。
 
 最新授权：完成测速和最终回归后自动启动 `Run_Unattended_Preliminary_Queue`。先G100/P4N/.001完整12-run校准；只有全部12条成功，才根据本机整批实际耗时×1.7判断是否以相同预算扩成36/108（已完成任务只读复用）。Exp3/4优先参考500/10N预算，不能可靠fit时可用双方共同pilot预算，分别选择3/5或1–3seeds。软截止16:50只判断能否启动新的完整阶段，不打断任何成本求解。详见 `UNATTENDED_PRELIMINARY_2026-10-01.md`；最终结果入口是每个queue目录的 `REPORT.md`、`live_progress.md` 及逐阶段CSV/MAT。
+
+## 8. 当天下午实际完成结果（晚间更新）
+
+后台队列于2026-10-01 15:02:35完整结束，164个独立solver任务成功、0失败、0待运行，约98分钟。Exp2的12条calibration只读复用到108条扩展，不能重复计数。
+
+- Exp2：108/108，G100/P4N/.001，3独立instances/N × 3 seeds × 4算法。公共13,501 checkpoint均非增，终点匹配；Evo优于GA/JADE，但VND对Evo为26胜1平，不能宣称新Evo全面领先。
+- Exp3：40/40，G100/P4N，4N×5 seeds×2策略，20完整paired均Direct更低。AHDE最后20代仍普遍改善，pilot不能称充分收敛，也不能当全局策略证明。
+- Exp4：16/16，G500/P10N，4N×1seed×4情形；8paired协同找到更低成本，anomaly=0。fixed最终及原AHDE全部500代F均严格1，五成本独立重算通过。
+- 7项reference profiling全部完成。未自动启动formal；考虑的额外Exp3 reference3seeds尚未启动，其launcher仅语法/DryRun验证，不能当作已跑实验。
+
+可直接给负责人/老师阅读的完整结果、真实用时与下一步风险见 `PRELIMINARY_EVENING_REPORT_2026-10-01.md`，逐项数据核验见 `EXP2_PRELIMINARY_108_AUDIT_2026-10-01.md` 与 `EXP3_EXP4_PRELIMINARY_RESULTS_AUDIT_2026-10-01.md`。旧章节保留作为开跑前审计轨迹，不将后来完成的结果冒写为开跑前已知。
